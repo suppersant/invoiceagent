@@ -44,4 +44,5 @@ class QAResult(BaseModel):
     overall_confidence: float = Field(..., ge=0.0, le=1.0, description="Overall confidence 0.0-1.0")
     field_scores: list[FieldScore] = Field(default_factory=list, description="Per-field confidence scores")
     flags: list[QAFlag] = Field(default_factory=list, description="Quality issues found")
+    routed_to_review: bool = Field(default=False, description="Whether the invoice was routed to human review")
     approved: bool = Field(default=False, description="Whether the invoice passed QA")

@@ -64,14 +64,19 @@ CREATE TABLE IF NOT EXISTS qa_results (
 );
 
 CREATE TABLE IF NOT EXISTS review_queue (
-    review_id   INTEGER PRIMARY KEY AUTOINCREMENT,
-    invoice_id  TEXT NOT NULL,
-    client_id   TEXT NOT NULL,
-    reason      TEXT NOT NULL,
-    status      TEXT NOT NULL DEFAULT 'pending',
-    reviewer    TEXT,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    review_id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    invoice_id              TEXT NOT NULL,
+    client_id               TEXT NOT NULL,
+    structured_invoice_json TEXT,
+    qa_result_json          TEXT,
+    original_pdf_path       TEXT,
+    reason                  TEXT NOT NULL,
+    status                  TEXT NOT NULL DEFAULT 'pending',
+    corrections_json        TEXT,
+    operator_notes          TEXT,
+    reviewer                TEXT,
+    created_at              TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at              TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (invoice_id) REFERENCES invoices(invoice_id)
 );
 """
@@ -232,6 +237,78 @@ class DatabaseManager:
                 (invoice_id, client_id, reason, now, now),
             )
             return cursor.lastrowid  # type: ignore[return-value]
+
+    def add_review_item(
+        self,
+        invoice_id: str,
+        client_id: str,
+        structured_invoice_json: str,
+        qa_result_json: str,
+        original_pdf_path: str,
+        reason: str,
+    ) -> int:
+        """Add a full review item with invoice and QA data."""
+        now = _now()
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "INSERT INTO review_queue "
+                "(invoice_id, client_id, structured_invoice_json, qa_result_json, "
+                " original_pdf_path, reason, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (invoice_id, client_id, structured_invoice_json, qa_result_json,
+                 original_pdf_path, reason, now, now),
+            )
+            return cursor.lastrowid  # type: ignore[return-value]
+
+    def get_review_items(
+        self,
+        status: str | None = None,
+        client_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Get review items with optional status and client filters."""
+        query = "SELECT * FROM review_queue WHERE 1=1"
+        params: list[Any] = []
+        if status is not None:
+            query += " AND status = ?"
+            params.append(status)
+        if client_id is not None:
+            query += " AND client_id = ?"
+            params.append(client_id)
+        query += " ORDER BY created_at DESC"
+        with self._connect() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_review_items_by_invoice(self, invoice_id: str) -> list[dict[str, Any]]:
+        """Get review items for a specific invoice."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM review_queue WHERE invoice_id = ?",
+                (invoice_id,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def update_review_item(
+        self,
+        invoice_id: str,
+        status: str,
+        *,
+        corrections_json: str | None = None,
+        operator_notes: str | None = None,
+        reviewer: str | None = None,
+    ) -> None:
+        """Update a review item by invoice_id."""
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE review_queue "
+                "SET status = ?, "
+                "    corrections_json = COALESCE(?, corrections_json), "
+                "    operator_notes = COALESCE(?, operator_notes), "
+                "    reviewer = COALESCE(?, reviewer), "
+                "    updated_at = ? "
+                "WHERE invoice_id = ?",
+                (status, corrections_json, operator_notes, reviewer, _now(), invoice_id),
+            )
 
     def get_review_queue_by_client(self, client_id: str) -> list[dict[str, Any]]:
         with self._connect() as conn:
