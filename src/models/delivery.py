@@ -24,8 +24,8 @@ class DeliveryResult(BaseModel):
         default_factory=lambda: datetime.datetime.now(datetime.UTC),
         description="When the delivery completed",
     )
-    format: DeliveryFormat = Field(..., description="Output format used")
-    output_path: str = Field(..., description="Path or URI where the output was written")
+    csv_path: str = Field(..., description="Path where the CSV output was written")
+    json_path: str = Field(..., description="Path where the JSON output was written")
     success: bool = Field(default=True, description="Whether delivery succeeded")
     error_message: str | None = Field(default=None, description="Error details if delivery failed")
     record_count: int = Field(default=0, ge=0, description="Number of line items delivered")

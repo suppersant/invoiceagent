@@ -344,19 +344,18 @@ class TestDeliveryResult:
     def test_creation(self):
         dr = DeliveryResult(
             invoice_id=uuid4(),
-            format=DeliveryFormat.CSV,
-            output_path="/data/clients/acme/processed/inv-001.csv",
+            csv_path="/data/clients/acme/processed/inv-001.csv",
+            json_path="/data/clients/acme/processed/inv-001.json",
             record_count=5,
         )
         assert dr.success is True
-        assert dr.format == DeliveryFormat.CSV
         assert dr.record_count == 5
 
     def test_failure_result(self):
         dr = DeliveryResult(
             invoice_id=uuid4(),
-            format=DeliveryFormat.JSON,
-            output_path="/data/clients/acme/processed/inv-001.json",
+            csv_path="/data/clients/acme/processed/inv-001.csv",
+            json_path="/data/clients/acme/processed/inv-001.json",
             success=False,
             error_message="Permission denied",
         )
@@ -366,14 +365,13 @@ class TestDeliveryResult:
     def test_round_trip_json(self):
         dr = DeliveryResult(
             invoice_id=uuid4(),
-            format=DeliveryFormat.JSON,
-            output_path="/tmp/out.json",
+            csv_path="/tmp/out.csv",
+            json_path="/tmp/out.json",
             record_count=3,
         )
         json_str = dr.model_dump_json()
         restored = DeliveryResult.model_validate_json(json_str)
         assert restored.invoice_id == dr.invoice_id
-        assert restored.format == DeliveryFormat.JSON
 
 
 # ---------------------------------------------------------------------------
@@ -393,8 +391,8 @@ class TestPipelineRoundTrip:
             QAResult(invoice_id=invoice_id, overall_confidence=0.90),
             DeliveryResult(
                 invoice_id=invoice_id,
-                format=DeliveryFormat.CSV,
-                output_path="/tmp/out.csv",
+                csv_path="/tmp/out.csv",
+                json_path="/tmp/out.json",
             ),
         ]
         for model in models:
