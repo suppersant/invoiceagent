@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest tests/test_models.py -v)",
+      "Read(//c/Users/Santi/AppData/Local/**)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/ProgramData/**)",
+      "Bash(.venv/Scripts/python -c \":*)",
+      "Bash(python -m pytest tests/test_vision_agent.py -v)"
+    ]
+  }
+}

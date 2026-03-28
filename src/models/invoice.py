@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 from decimal import Decimal
+from typing import Any
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
@@ -50,3 +51,11 @@ class StructuredInvoice(BaseModel):
     total: Decimal = Field(..., description="Invoice total — must be Decimal, not float")
     line_items: list[LineItem] = Field(default_factory=list, description="Invoice line items")
     metadata: InvoiceMetadata = Field(..., description="Processing metadata")
+    confidence_flags: list[str] = Field(
+        default_factory=list,
+        description="Flags for fields that could not be confidently mapped",
+    )
+    raw_extraction: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Original extraction data preserved for traceability [B1]",
+    )
